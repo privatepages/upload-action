@@ -16,3 +16,5 @@ curl -X POST https://$2/upload \
     -H "Content-Type: multipart/form-data" \
     -F "artifactname=$3" \
     -F "token=$4"
+
+# tar.sh wanteddir "yourpagesdomain.tld" docs secret
