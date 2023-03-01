@@ -1,0 +1,96 @@
+---
+
+name: "Upload Private Pages artifact"
+description: "A composite action that prepares your static assets to be deployed to GitHub Pages"
+author: "privatepages"
+
+branding:
+  icon: upload
+  color: green
+
+inputs:
+  name:
+    description: 'Artifact name'
+    required: false
+    default: 'github-pages'
+  path:
+    description: "Path of the directory containing the static assets."
+    required: false
+    default: "_site/"
+  privatepages-url:
+    description: Your self-hosted privatepages URL
+    required: true
+  privatepages-token:
+    description: Your self-hosted privatepages token
+    required: true
+
+runs:
+  using: composite
+  steps:
+    -
+      name: Archive artifact
+      shell: sh
+      if: runner.os == 'Linux'
+      run: |
+        chmod -c -R +rX "$INPUT_PATH" | while read line; do
+          echo "::warning title=Invalid file permissions automatically fixed::$line"
+        done
+        tar \
+          --dereference --hard-dereference \
+          --directory "$INPUT_PATH" \
+          -cvzf "$RUNNER_TEMP/artifact.tar.gz" \
+          --exclude=.git \
+          --exclude=.github \
+          .
+      env:
+        INPUT_PATH: ${{ inputs.path }}
+
+    # # Switch to gtar (GNU tar instead of bsdtar which is the default in the MacOS runners so we can use --hard-dereference)
+    # -
+    #   name: Archive artifact
+    #   shell: sh
+    #   if: runner.os == 'macOS'
+    #   run: |
+    #     chmod -v -R +rX "$INPUT_PATH" | while read line; do
+    #       echo "::warning title=Invalid file permissions automatically fixed::$line"
+    #     done
+    #     gtar \
+    #       --dereference --hard-dereference \
+    #       --directory "$INPUT_PATH" \
+    #       -cvzf "$RUNNER_TEMP/artifact.tar.gz" \
+    #       --exclude=.git \
+    #       --exclude=.github \
+    #       .
+    #   env:
+    #     INPUT_PATH: ${{ inputs.path }}
+
+    # # Massage the paths for Windows only
+    # - name: Archive artifact
+    #   shell: bash
+    #   if: runner.os == 'Windows'
+    #   run: |
+    #     tar \
+    #       --dereference --hard-dereference \
+    #       --directory "$INPUT_PATH" \
+    #       -cvzf "$RUNNER_TEMP\artifact.tar.gz" \
+    #       --exclude=.git \
+    #       --exclude=.github \
+    #       --force-local \
+    #       "."
+    #   env:
+    #     INPUT_PATH: ${{ inputs.path }}
+
+    - name: Upload artifact
+      shell: sh
+      if: runner.os == 'Linux'
+      run: |
+        curl -X POST $URL/upload \
+          -F "file=@$RUNNER_TEMP/artifact.tar.gz" \
+          -H "Content-Type: multipart/form-data" \
+          -F "artifactname=$NAME" \
+          -F "token=$TOKEN" \
+          --user-agent "privatepages upload action"
+      env:
+        NAME: ${{ inputs.name }}
+        URL: ${{ inputs.privatepages-url }}
+        TOKEN: ${{ inputs.privatepages-token }}
