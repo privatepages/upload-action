@@ -1,7 +1,7 @@
 ---
 
 name: "Upload Private Pages artifact"
-description: "A composite action that prepares your static assets to be deployed to GitHub Pages"
+description: "An action that simply sends a artifact with html static to your self-hosted privatepages"
 author: "privatepages"
 
 branding:
@@ -89,6 +89,7 @@ runs:
           -H "Content-Type: multipart/form-data" \
           -F "artifactname=$NAME" \
           -F "token=$TOKEN" \
+          --fail \
           --user-agent "privatepages upload action"
       env:
         NAME: ${{ inputs.name }}
